@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Branch Change Requests{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3>Branch Change Requests</h3>
+                </div>
+                <div class="card-body">
+                    {% if requests %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Current Branch</th>
+                                        <th>Requested Branch</th>
+                                        <th>Message</th>
+                                        <th>Status</th>
+                                        <th>Created At</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for request in requests %}
+                                        <tr>
+                                            <td>{{ request.user.username }}</td>
+                                            <td>{{ request.current_branch.name }}</td>
+                                            <td>{{ request.requested_branch.name }}</td>
+                                            <td>{{ request.request_message|truncatechars:50 }}</td>
+                                            <td>
+                                                <span class="badge 
+                                                    {% if request.status == 'Pending' %}bg-warning
+                                                    {% elif request.status == 'Approved' %}bg-success
+                                                    {% else %}bg-danger{% endif %}">
+                                                    {{ request.status }}
+                                                </span>
+                                            </td>
+                                            <td>{{ request.created_at|date:"M d, Y H:i" }}</td>
+                                            <td>
+                                                {% if request.status == 'Pending' %}
+                                                    <a href="{% url 'admin_request_detail' request.pk %}" class="btn btn-sm btn-primary">Review</a>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p>No branch change requests.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

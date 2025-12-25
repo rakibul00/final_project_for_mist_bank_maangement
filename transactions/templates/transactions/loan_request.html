@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block head_title %}Apply for Loan{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-10 col-xl-8">
+            <div class="card shadow-sm rounded-4 overflow-hidden">
+                <div class="row g-0">
+                    <div class="col-12 col-md-5 bg-primary text-white d-flex flex-column justify-content-center p-3 p-md-4 rounded-start-4">
+                        <div class="px-2">
+                            <div class="d-flex align-items-center mb-3">
+                                <span class="me-3 fs-2 fs-md-3">
+                                    <i class="fa-solid fa-user"></i>
+                                </span>
+                                <div>
+                                    <h4 class="mb-0 fs-5 fs-md-4">{{ user.get_full_name|default:user.username }}</h4>
+                                    <small class="opacity-75">Account: {{ user.account.account_no }}</small>
+                                </div>
+                            </div>
+
+                            <div class="mt-4">
+                                <h5 class="mb-1 fs-6">Current Balance</h5>
+                                <div class="d-flex align-items-baseline">
+                                    <span class="fs-4 fs-md-3 fw-bold">{{ user.account.balance|floatformat:2 }}</span>
+                                    <small class="text-uppercase ms-2">BDT</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-md-7 p-3 p-md-4">
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3">
+                            <h3 class="mb-2 mb-md-0 fs-4">Apply for Loan</h3>
+                            <small class="text-muted">Safe & Secure</small>
+                        </div>
+
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        {% if user.account.balance < 500 %}
+                            <div class="alert alert-warning d-flex align-items-center" role="alert">
+                                <i class="fa-solid fa-triangle-exclamation me-2"></i>
+                                <div class="flex-grow-1">
+                                    Your current balance is low. You need at least <strong>500 BDT</strong> to request a loan.
+                                </div>
+                            </div>
+                        {% endif %}
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label class="form-label">Loan Amount (BDT)</label>
+                        {% if form.amount %}
+                            {{ form.amount }}
+                            {% for err in form.amount.errors %}
+                                <div class="text-danger small mt-1">{{ err }}</div>
+                            {% endfor %}
+                        {% else %}
+                            {{ form.loan_amount }}
+                            {% for err in form.loan_amount.errors %}
+                                <div class="text-danger small mt-1">{{ err }}</div>
+                            {% endfor %}
+                        {% endif %}
+                        <div class="form-text">Minimum loan amount is <strong>500 BDT</strong></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Purpose</label>
+                        {{ form.loan_purpose }}
+                        {% for err in form.loan_purpose.errors %}
+                            <div class="text-danger small mt-1">{{ err }}</div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success btn-lg fw-semibold text-white" style="transition: transform .12s ease;">
+                            <i class="fa-solid fa-paper-plane me-2"></i> Request Loan
+                        </button>
+                    </div>
+                </form>
+
+                <div class="mt-4 text-muted small">
+                    <i class="fa-solid fa-info-circle me-1"></i> Loans carry an interest rate of <strong>8%</strong>. Total payable will be principal + interest.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block footer %}{% endblock %}

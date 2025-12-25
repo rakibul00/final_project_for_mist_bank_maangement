@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+  <h2>Approved Loans Report</h2>
+  <div class="card mb-3">
+    <div class="card-body">
+      <ul>
+        <li><strong>Total loans:</strong> {{ total_loans }}</li>
+        <li><strong>Approved loans:</strong> {{ approved_loans }}</li>
+        <li><strong>Pending loans:</strong> {{ pending_loans }}</li>
+        <li><strong>Rejected loans:</strong> {{ rejected_loans }}</li>
+        <li><strong>Total approved loan amount:</strong> {{ total_approved_amount }}</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Amount</th>
+          <th>Interest</th>
+          <th>Total Payable</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for loan in loans %}
+        <tr>
+          <td>{{ loan.user.user.get_full_name|default:loan.user.user.username }}</td>
+          <td>{{ loan.amount }}</td>
+          <td>{{ loan.interest_amount }}</td>
+          <td>{{ loan.total_amount }}</td>
+          <td>{{ loan.get_status_display }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+  <h2>Loan Report</h2>
+  <ul>
+    <li><strong>Total loans:</strong> {{ total_loans }}</li>
+    <li><strong>Approved loans:</strong> {{ approved_loans }}</li>
+    <li><strong>Pending loans:</strong> {{ pending_loans }}</li>
+    <li><strong>Rejected loans:</strong> {{ rejected_loans }}</li>
+    <li><strong>Total approved loan amount:</strong> {{ total_approved_amount }}</li>
+  </ul>
+</div>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% for message in messages %}
+<div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show d-flex align-items-center mt-3 mx-3 mx-md-0" role="alert">
+    <i class="fas fa-{% if message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'warning' %}exclamation-circle{% elif message.tags == 'success' %}check-circle{% else %}info-circle{% endif %} me-2"></i>
+    <div class="flex-grow-1">
+        <strong>{% if message.tags == 'error' %}Error{% elif message.tags == 'warning' %}Warning{% elif message.tags == 'success' %}Success{% else %}Info{% endif %}!</strong>
+        {{ message }}
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endfor %}

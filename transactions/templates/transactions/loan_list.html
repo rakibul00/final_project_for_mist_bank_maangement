@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load loan_filters %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>My Loans</h2>
+    <a href="{% url 'transactions:loan_apply' %}" class="btn btn-primary">Apply for Loan</a>
+  </div>
+
+  {% if loans %}
+    <div class="row">
+      <div class="col-12">
+        <div class="table-responsive">
+        <div class="table-responsive">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th class="text-nowrap">ID</th>
+                <th class="text-nowrap">Amount</th>
+                <th class="text-nowrap">Interest</th>
+                <th class="text-nowrap">Total Payable</th>
+                <th class="text-nowrap">Amount Paid</th>
+                <th class="text-nowrap">Remaining</th>
+                <th class="text-nowrap">Status</th>
+                <th class="text-nowrap">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for loan in loans %}
+              {% with paid=loan.payments|sum:"amount" %}
+              <tr>
+                <td>{{ loan.id }}</td>
+                <td>${{ loan.amount }}</td>
+                <td>${{ loan.interest_amount }}</td>
+                <td>${{ loan.total_amount }}</td>
+                <td>${{ paid }}</td>
+                <td>${{ loan.total_amount|sub:paid }}</td>
+                <td>
+                  <span class="badge 
+                    {% if loan.status == 'APPROVED' %}bg-success
+                    {% elif loan.status == 'PENDING' %}bg-warning text-dark
+                    {% elif loan.status == 'REJECTED' %}bg-danger
+                    {% else %}bg-secondary{% endif %}">
+                    {{ loan.get_status_display }}
+                  </span>
+                </td>
+                <td>
+                  {% if loan.status == 'APPROVED' %}
+                    <a class="btn btn-success btn-sm w-100 mb-1" href="{% url 'transactions:loan_pay' loan.id %}">Pay Loan</a>
+                  {% elif loan.status == 'PENDING' %}
+                    <span class="text-warning">Pending</span>
+                  {% elif loan.status == 'REJECTED' %}
+                    <span class="text-danger">Rejected</span>
+                  {% else %}
+                    <span class="text-success">Paid</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endwith %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-info">No loans found. <a href="{% url 'transactions:loan_apply' %}">Apply for a loan</a>.</div>
+  {% endif %}
+</div>
+{% endblock %}

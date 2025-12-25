@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}My Branch Change Requests{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3>My Branch Change Requests</h3>
+                </div>
+                <div class="card-body">
+                    {% if requests %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Current Branch</th>
+                                        <th>Requested Branch</th>
+                                        <th>Message</th>
+                                        <th>Status</th>
+                                        <th>Created At</th>
+                                        <th>Admin Comment</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for request in requests %}
+                                        <tr>
+                                            <td>{{ request.current_branch.name }}</td>
+                                            <td>{{ request.requested_branch.name }}</td>
+                                            <td>{{ request.request_message }}</td>
+                                            <td>
+                                                <span class="badge 
+                                                    {% if request.status == 'Pending' %}bg-warning
+                                                    {% elif request.status == 'Approved' %}bg-success
+                                                    {% else %}bg-danger{% endif %}">
+                                                    {{ request.status }}
+                                                </span>
+                                            </td>
+                                            <td>{{ request.created_at|date:"M d, Y H:i" }}</td>
+                                            <td>{{ request.admin_comment|default:"-" }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p>You have no branch change requests.</p>
+                    {% endif %}
+                    <a href="{% url 'submit_branch_change_request' %}" class="btn btn-primary">Submit New Request</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

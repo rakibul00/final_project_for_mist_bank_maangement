@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block head_title %}Pay Loan{% endblock %}
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h3 class="card-title mb-0">Pay Loan #{{ loan.id }}</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Loan Details -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5>Loan Details</h5>
+                            <p><strong>Customer Name:</strong> {{ loan.user.user.get_full_name|default:loan.user.user.username }}</p>
+                            <p><strong>Account Number:</strong> {{ loan.user.account_no }}</p>
+                            <p><strong>Loan Amount:</strong> ${{ loan.loan_amount }}</p>
+                            <p><strong>Loan Purpose:</strong> {{ loan.loan_purpose }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Payment Details</h5>
+                            <p><strong>Interest (8%):</strong> ${{ loan.interest_amount }}</p>
+                            <p><strong>Total Payable Amount:</strong> <span class="text-primary fw-bold">${{ loan.total_payable }}</span></p>
+                            <p><strong>Request Date:</strong> {{ loan.request_date|date:"M d, Y" }}</p>
+                            {% if loan.approved_at %}
+                                <p><strong>Approved Date:</strong> {{ loan.approved_at|date:"M d, Y" }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Payment Form -->
+                    <h5>Payment Information</h5>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.amount.id_for_label }}" class="form-label">Payment Amount ($)</label>
+                                    {{ form.amount }}
+                                    {% if form.amount.errors %}
+                                        <div class="text-danger small">{{ form.amount.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.payment_date.id_for_label }}" class="form-label">Payment Date</label>
+                                    {{ form.payment_date }}
+                                    {% if form.payment_date.errors %}
+                                        <div class="text-danger small">{{ form.payment_date.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="alert alert-warning">
+                                <strong>Important:</strong> You must pay the full amount of ${{ loan.total_payable }} to complete the loan payment.
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">Pay Loan</button>
+                            <a href="{% url 'loan_list' %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

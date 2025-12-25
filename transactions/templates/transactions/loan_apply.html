@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-4">
+  <h2>Apply for a Loan</h2>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="mb-3">
+      {% if form.amount %}
+        {{ form.amount.label_tag }}
+        {{ form.amount }}
+        {{ form.amount.errors }}
+      {% else %}
+        {{ form.loan_amount.label_tag }}
+        {{ form.loan_amount }}
+        {{ form.loan_amount.errors }}
+      {% endif %}
+    </div>
+    <div class="mb-3">
+      {{ form.interest_rate.label_tag }}
+      {{ form.interest_rate }}
+      {{ form.interest_rate.errors }}
+    </div>
+    <div class="mb-3">
+      {{ form.loan_purpose.label_tag }}
+      {{ form.loan_purpose }}
+    </div>
+    <button class="btn btn-primary" type="submit">Submit Application</button>
+  </form>
+</div>
+{% endblock %}

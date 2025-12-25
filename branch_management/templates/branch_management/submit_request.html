@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block head_extra %}
+<!-- Additional styles if needed -->
+{% endblock %}
+
+{% block title %}Request Branch Change{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto bg-gray-100 min-h-screen py-20">
+    <div class="flex justify-center">
+        <div class="w-full max-w-2xl">
+            <!-- Page Header Section -->
+            <div class="text-center mb-6">
+                <!-- Bank Icon -->
+                <div class="bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4" style="width: 80px; height: 80px;">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                </div>
+                <!-- Title -->
+                <h1 class="text-3xl font-bold text-gray-900 mt-4 mb-2">Request Branch Change</h1>
+                <!-- Subtitle -->
+                <p class="text-gray-600 mb-6">Submit a request to change your bank branch</p>
+            </div>
+
+            <!-- Django Messages (Success/Error Alerts) -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="mb-6 p-4 rounded-md {% if message.tags == 'success' %}bg-green-100 border border-green-400 text-green-700{% else %}bg-red-100 border border-red-400 text-red-700{% endif %}" role="alert">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                {% if message.tags == 'success' %}
+                                    <svg class="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                    </svg>
+                                {% else %}
+                                    <svg class="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                    </svg>
+                                {% endif %}
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm font-medium">{{ message }}</p>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Main Form Card -->
+            <div class="bg-white shadow-xl rounded-lg overflow-hidden hover:shadow-lg transition duration-200">
+                <div class="p-6 sm:p-10">
+                    <!-- Django Form -->
+                    <form method="post" action="" id="branchChangeForm" novalidate>
+                        {% csrf_token %}
+
+                        <!-- Current Branch Field (Read-only) -->
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <svg class="w-5 h-5 text-blue-600 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>Current Branch
+                            </label>
+                            <input
+                                type="text"
+                                value="{{ request.user.account.branch.name }} ({{ request.user.account.branch.code }})"
+                                readonly
+                                class="appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm bg-gray-50"
+                                style="cursor: not-allowed;"
+                            >
+                            <p class="mt-1 text-sm text-gray-500">
+                                <svg class="w-4 h-4 text-gray-400 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>This is your current assigned branch
+                            </p>
+                        </div>
+
+                        <!-- Requested Branch Dropdown -->
+                        <div class="mb-6">
+                            <label for="{{ form.requested_branch.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                <svg class="w-5 h-5 text-blue-600 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>Requested Branch
+                            </label>
+                            <div class="relative">
+                                {{ form.requested_branch }}
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                            {% if form.requested_branch.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.requested_branch.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Reason Textarea -->
+                        <div class="mb-6">
+                            <label for="{{ form.request_message.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                <svg class="w-5 h-5 text-blue-600 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                                </svg>Reason for Change
+                            </label>
+                            {{ form.request_message }}
+                            <p class="mt-1 text-sm text-gray-500">
+                                <svg class="w-4 h-4 text-gray-400 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>Please provide a detailed reason (maximum 500 characters)
+                            </p>
+                            {% if form.request_message.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.request_message.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <!-- Action Buttons -->
+                        <div class="flex flex-col sm:flex-row gap-3 sm:justify-end mt-6">
+                            <!-- Cancel Button -->
+                            <button type="button" class="inline-flex justify-center items-center px-4 py-3 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" onclick="window.history.back()">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                                </svg>
+                                Cancel
+                            </button>
+                            <!-- Submit Button -->
+                            <button type="submit" class="inline-flex justify-center items-center px-6 py-3 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" id="submitBtn">
+                                <span id="btnText">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                                    </svg>
+                                    Submit Request
+                                </span>
+                                <span id="loadingSpinner" class="hidden">
+                                    <svg class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Submitting...
+                                </span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Footer Note -->
+            <div class="text-center mt-4">
+                <small class="text-gray-500">
+                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                    Your request will be reviewed by our administration team. You will receive a notification once processed.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tailwind CSS JS (if needed for dynamic features) -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+// Form submission handling with loading state
+document.getElementById('branchChangeForm').addEventListener('submit', function(e) {
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+
+    // Disable button and show loading
+    submitBtn.disabled = true;
+    btnText.classList.add('hidden');
+    loadingSpinner.classList.remove('hidden');
+});
+
+// Character counter for textarea
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('id_request_message');
+    if (textarea) {
+        const maxLength = textarea.getAttribute('maxlength') || 500;
+        const charCounter = document.createElement('small');
+        charCounter.className = 'block text-gray-500 text-sm mt-1';
+        charCounter.innerHTML = '<span id="charCount">0</span>/' + maxLength + ' characters';
+
+        textarea.parentNode.appendChild(charCounter);
+
+        textarea.addEventListener('input', function() {
+            document.getElementById('charCount').textContent = this.value.length;
+        });
+    }
+});
+</script>
+
+<style>
+/* Custom styles for enhanced professional look with Tailwind */
+/* Card hover effect */
+.hover\:shadow-lg:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Button hover animations */
+.bg-blue-600:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Background gradient */
+.bg-gray-50 {
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%) !important;
+}
+
+/* Alert styling */
+.bg-red-50 {
+    border-radius: 0.5rem;
+}
+
+.bg-green-50 {
+    border-radius: 0.5rem;
+}
+
+.bg-yellow-50 {
+    border-radius: 0.5rem;
+}
+
+.bg-blue-50 {
+    border-radius: 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .px-8 {
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
+    }
+
+    .py-12 {
+        padding-top: 2rem !important;
+        padding-bottom: 2rem !important;
+    }
+
+    .px-6 {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+
+    .py-3 {
+        padding-top: 0.75rem !important;
+        padding-bottom: 0.75rem !important;
+    }
+}
+</style>
+{% endblock %}

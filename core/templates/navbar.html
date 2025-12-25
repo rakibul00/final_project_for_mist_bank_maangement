@@ -1,0 +1,62 @@
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+    <div class="container-fluid px-4">
+        <a class="navbar-brand fw-bold text-primary fs-4" href="/">Bank Management System</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            {% if request.user.is_authenticated %}
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'transactions:transaction_report' %}">Report</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'transactions:deposit_money' %}">Deposit</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'transactions:withdraw_money' %}">Withdraw</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'transactions:transfer_money' %}">Transfer</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="loanDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Loan
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="loanDropdown">
+                            <li><a class="dropdown-item" href="{% url 'transactions:loan_request' %}">Loan Request</a></li>
+                            <li><a class="dropdown-item" href="{% url 'transactions:loan_list' %}">Loan List</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'branch_change_requests' %}">Branch Change</a>
+                    </li>
+                    {% if request.user.account.role == 'Admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'admin_branch_requests' %}">Admin Branch Requests</a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <div class="d-flex align-items-center flex-nowrap">
+                    <span class="me-2 text-muted d-none d-lg-inline small">Welcome, {{ request.user.first_name }} (${{ request.user.account.balance }})</span>
+                    <span class="me-2 text-muted d-none d-md-inline d-lg-none small">{{ request.user.first_name }} (${{ request.user.account.balance }})</span>
+                    <span class="me-2 text-muted d-md-none small">{{ request.user.first_name }}</span>
+                    <a href="{% url 'notifications:notification_list' %}" class="btn btn-outline-primary me-1 btn-sm position-relative p-1" title="Notifications">
+                        <i class="fas fa-bell"></i>
+                        {% if unread_notifications_count > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger fs-6 p-1">{{ unread_notifications_count }}</span>
+                        {% endif %}
+                    </a>
+                    <a href="{% url 'profile' %}" class="btn btn-primary me-1 btn-sm d-none d-sm-inline px-2" title="Profile">Profile</a>
+                    <a href="{% url 'profile' %}" class="btn btn-primary me-1 btn-sm d-sm-none p-1" title="Profile"><i class="fas fa-user"></i></a>
+                    <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm px-2" title="Logout">Logout</a>
+                </div>
+            {% else %}
+                <div class="d-flex ms-auto">
+                    <a href="{% url 'login' %}" class="btn btn-outline-primary me-2">Login</a>
+                    <a href="{% url 'register' %}" class="btn btn-primary">Register</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</nav>
