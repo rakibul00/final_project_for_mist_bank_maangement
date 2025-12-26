@@ -1,34 +1,218 @@
-{% extends 'base.html' %}  {% block content %} {% if form.non_field_errors %} {% for error in form.non_field_errors %}
-<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mt-2" role="alert">
-    <p class="font-bold">Error!</p>
-    <p class="block sm:inline">{{ error }}</p>
-</div>
-{% endfor %} {% endif %}
-<div class="grid grid-cols-3 gap-4">
-    <div></div>
-    <div class="py-2 px-3 rounded-xl bg-white mt-12">
-        <h1 class="font-bold text-3xl text-center pb-5 shadow-md">Login</h1>
-        <div class="w-full mt-10">
-            <form method="post" class="shadow-md border border-gray-200 rounded px-8 pt-6 pb-8 mb-4">
-                {% csrf_token %} {% for hidden_field in form.hidden_fields %} {{ hidden_field.errors }} {{ hidden_field }} {% endfor %} 
-                {% for field in form.visible_fields %}
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2" for="{{ field.id_for_label }}">
-                {{ field.label }}
-            </label>
-                    <input class="shadow appearance-none border border-gray-500 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" name="{{ field.name }}" id="{{ field.id_for_label }}" type="{{ field.widget_type }}">
-                </div>
-                {% if field.errors %} {% for error in field.errors %}
-                <p class="text-red-600 text-sm italic pb-2">{{ error }}</p>
-                {% endfor %} {% endif %} {% endfor %}
+{% extends 'base.html' %}
 
-                <div class="flex items-center justify-center w-full">
-                    <button class="bg-blue-900 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="submit">
-                Log In
-            </button>
-                </div>
-            </form>
+{% block head_extra %}
+<style>
+/* Modern Responsive Login Page Styles */
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+}
+
+.login-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 420px;
+    padding: 40px 30px;
+    animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.login-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.login-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 8px;
+    letter-spacing: -0.025em;
+}
+
+.login-subtitle {
+    color: #6b7280;
+    font-size: 1rem;
+    margin: 0;
+}
+
+.form-group {
+    margin-bottom: 24px;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-input::placeholder {
+    color: #9ca3af;
+}
+
+.btn-login {
+    width: 100%;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    border: none;
+    padding: 14px 20px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 8px;
+}
+
+.btn-login:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px rgba(59, 130, 246, 0.2);
+}
+
+.btn-login:active {
+    transform: translateY(0);
+}
+
+.error-message {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 0.875rem;
+}
+
+.field-error {
+    color: #dc2626;
+    font-size: 0.75rem;
+    margin-top: 4px;
+    display: block;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+    .login-card {
+        padding: 30px 20px;
+        margin: 10px;
+    }
+
+    .login-title {
+        font-size: 2rem;
+    }
+
+    .form-input {
+        padding: 14px 16px;
+        font-size: 1rem;
+    }
+
+    .btn-login {
+        padding: 16px 20px;
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .login-card {
+        padding: 25px 15px;
+    }
+
+    .login-title {
+        font-size: 1.75rem;
+    }
+}
+
+/* Loading state */
+.btn-login:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <h1 class="login-title">Welcome Back</h1>
+            <p class="login-subtitle">Sign in to your account</p>
         </div>
+
+        {% if form.non_field_errors %}
+            {% for error in form.non_field_errors %}
+                <div class="error-message">
+                    <strong>Error!</strong> {{ error }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post" class="login-form">
+            {% csrf_token %}
+            {% for hidden_field in form.hidden_fields %}
+                {{ hidden_field.errors }}
+                {{ hidden_field }}
+            {% endfor %}
+
+            {% for field in form.visible_fields %}
+                <div class="form-group">
+                    <label class="form-label" for="{{ field.id_for_label }}">
+                        {{ field.label }}
+                    </label>
+                    <input class="form-input"
+                           name="{{ field.name }}"
+                           id="{{ field.id_for_label }}"
+                           type="{{ field.widget_type }}"
+                           placeholder="{{ field.label }}"
+                           value="{{ field.value|default_if_none:'' }}"
+                           {% if field.field.required %}required{% endif %}>
+                    {% if field.errors %}
+                        {% for error in field.errors %}
+                            <span class="field-error">{{ error }}</span>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <button class="btn-login" type="submit">
+                Sign In
+            </button>
+        </form>
     </div>
 </div>
 {% endblock %}
