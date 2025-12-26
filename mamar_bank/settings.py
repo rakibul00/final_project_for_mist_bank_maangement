@@ -128,6 +128,9 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = str(BASE_DIR / 'staticfiles')
 
+# STATICFILES_DIRS is not needed since static files are in app directories
+# Django automatically finds static/ folders in INSTALLED_APPS
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
