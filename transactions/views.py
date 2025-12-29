@@ -227,18 +227,27 @@ class WithdrawMoneyView(TransactionCreateMixin):
 
     def form_valid(self, form):
         amount = form.cleaned_data.get('amount')
-
-        self.request.user.account.balance -= form.cleaned_data.get('amount')
-        # balance = 300
-        # amount = 5000
-        self.request.user.account.save(update_fields=['balance'])
+        account = self.request.user.account
+        
+        # Check if total aggregated balance is sufficient
+        total_balance = account.total_balance
+        if amount > total_balance:
+            messages.error(
+                self.request,
+                f'Insufficient funds. Your total aggregated balance is ${"{:,.2f}".format(float(total_balance))}'
+            )
+            return self.form_invalid(form)
+        
+        # Withdraw from main account balance
+        account.balance -= amount
+        account.save(update_fields=['balance'])
 
         # Set transaction type
         form.instance.transaction_type = WITHDRAWAL
 
         messages.success(
             self.request,
-            f'Successfully withdrawn {"{:,.2f}".format(float(amount))}$ from your account'
+            f'Successfully withdrawn {"{:,.2f}".format(float(amount))}$ from your account. Total aggregated balance: ${"{:,.2f}".format(float(account.total_balance))}'
         )
 
         return super().form_valid(form)

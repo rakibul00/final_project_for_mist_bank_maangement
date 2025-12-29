@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.db.models import Sum
 from .constants import ACCOUNT_TYPE, GENDER_TYPE
 from banks.models import Bank
 from branch_management.models import Branch
@@ -24,6 +25,22 @@ class UserBankAccount(models.Model):
     initial_deposite_date = models.DateField(auto_now_add=True)
     balance = models.DecimalField(default=0, max_digits=12, decimal_places=2) # ekjon user 12 digit obdi taka rakhte parbe, dui doshomik ghor obdi rakhte parben 1000.50
     is_active = models.BooleanField(default=True)
+    
+    @property
+    def total_balance(self):
+        """Calculate total balance including external bank accounts"""
+        external_balance = self.user.external_accounts.aggregate(
+            total=models.Sum('current_balance')
+        )['total'] or 0
+        return self.balance + external_balance
+    
+    @property
+    def external_accounts_balance(self):
+        """Get total balance from external accounts only"""
+        return self.user.external_accounts.aggregate(
+            total=models.Sum('current_balance')
+        )['total'] or 0
+    
     def __str__(self):
         return f"{self.bank.name} - {self.account_no}"
     
@@ -79,4 +96,27 @@ class UserAddress(models.Model):
     country = models.CharField(max_length=100)
     def __str__(self):
         return str(self.user.email)
+
+
+class ExternalBankAccount(models.Model):
+    """Model for storing external bank accounts linked to users"""
+
+    user = models.ForeignKey(User, related_name='external_accounts', on_delete=models.CASCADE)
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE,null=True,blank=True)
+    account_number = models.CharField(max_length=50, unique=True)
+    current_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'External Bank Account'
+        verbose_name_plural = 'External Bank Accounts'
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'bank'], name='unique_user_bank_external')
+        ]
+
+    def __str__(self):
+        bank_name = self.bank.name if self.bank else 'Unknown Bank'
+        return f"{bank_name} - {self.account_number} ({self.user.username})"
     

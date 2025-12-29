@@ -1,12 +1,13 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
     <div class="container-fluid px-4">
-        <a class="navbar-brand fw-bold text-primary fs-4" href="/">Bank Management System</a>
+        <a class="navbar-brand fw-bold text-primary fs-4" href="/">Smart Financial Management System</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             {% if request.user.is_authenticated %}
                 <ul class="navbar-nav me-auto">
+                   
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'transactions:transaction_report' %}">Report</a>
                     </li>
@@ -18,6 +19,12 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'transactions:transfer_money' %}">Transfer</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'external_accounts' %}">External Accounts</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'banks:bank_list' %}">Available Financials</a>
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="loanDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -38,8 +45,8 @@
                     {% endif %}
                 </ul>
                 <div class="d-flex align-items-center flex-nowrap">
-                    <span class="me-2 text-muted d-none d-lg-inline small">Welcome, {{ request.user.first_name }} (${{ request.user.account.balance }})</span>
-                    <span class="me-2 text-muted d-none d-md-inline d-lg-none small">{{ request.user.first_name }} (${{ request.user.account.balance }})</span>
+                    <span class="me-2 text-muted d-none d-lg-inline small">Welcome, {{ request.user.first_name }} (${{ request.user.account.total_balance|floatformat:2 }})</span>
+                    <span class="me-2 text-muted d-none d-md-inline d-lg-none small">{{ request.user.first_name }} (${{ request.user.account.total_balance|floatformat:2 }})</span>
                     <span class="me-2 text-muted d-md-none small">{{ request.user.first_name }}</span>
                     <a href="{% url 'notifications:notification_list' %}" class="btn btn-outline-primary me-1 btn-sm position-relative p-1" title="Notifications">
                         <i class="fas fa-bell"></i>

@@ -3,7 +3,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django import forms
 from .constants import ACCOUNT_TYPE, GENDER_TYPE
 from django.contrib.auth.models import User
-from .models import UserBankAccount, UserAddress, AccountClosure, AccountClosureRequest
+from .models import UserBankAccount, UserAddress, AccountClosure, AccountClosureRequest, ExternalBankAccount
 from banks.models import Bank
 from branch_management.models import Branch
 
@@ -39,9 +39,14 @@ class UserRegistrationForm(UserCreationForm):
                 city = city,
                 street_address = street_address
             )
+            # Ensure a default bank exists; create one if missing to avoid DoesNotExist
+            default_bank, _created = Bank.objects.get_or_create(
+                name='Default Bank',
+                defaults={'code': 'DEF', 'is_active': True}
+            )
             UserBankAccount.objects.create(
                 user = our_user,
-                bank = Bank.objects.get(name='Default Bank'),
+                bank = default_bank,
                 branch = Branch.objects.get_or_create(name='Main Branch', defaults={'code': 'MAIN', 'address': 'Default Address'})[0],
                 account_type  = account_type,
                 gender = gender,
@@ -161,3 +166,76 @@ class AccountClosureRequestForm(forms.ModelForm):
     class Meta:
         model = AccountClosureRequest
         fields = ['reason']
+
+
+class ExternalBankAccountForm(forms.ModelForm):
+    account_number = forms.CharField(
+        max_length=50,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter account number'
+        }),
+        label='Account Number'
+    )
+    
+    current_balance = forms.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': '0.00',
+            'step': '0.01'
+        }),
+        label='Current Balance',
+        min_value=0
+    )
+
+    class Meta:
+        model = ExternalBankAccount
+        fields = ['bank', 'account_number', 'current_balance']
+        widgets = {
+            'bank': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+
+class ExternalBankAccountCreateForm(forms.ModelForm):
+    bank = forms.ModelChoiceField(queryset=Bank.objects.filter(is_active=True), widget=forms.Select(attrs={'class': 'form-control'}))
+    current_balance = forms.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': '0.00',
+            'step': '0.01'
+        }),
+        label='Current Balance',
+        min_value=0
+    )
+
+    class Meta:
+        model = ExternalBankAccount
+        fields = ['bank', 'current_balance']
+
+    def __init__(self, *args, **kwargs):
+        # Accept `prefill_bank` kwarg (Bank instance or id) to disable bank selection
+        prefill_bank = kwargs.pop('prefill_bank', None)
+        super().__init__(*args, **kwargs)
+        if prefill_bank:
+            # allow passing either Bank instance or id
+            from banks.models import Bank as BankModel
+            if isinstance(prefill_bank, BankModel):
+                bank_obj = prefill_bank
+            else:
+                bank_obj = Bank.objects.filter(pk=prefill_bank).first()
+            if bank_obj:
+                self.fields['bank'].initial = bank_obj
+                self.fields['bank'].queryset = Bank.objects.filter(pk=bank_obj.pk)
+                self.fields['bank'].disabled = True
+
+    def clean_current_balance(self):
+        bal = self.cleaned_data.get('current_balance')
+        if bal is None:
+            return 0
+        if bal < 0:
+            raise forms.ValidationError('Balance must be zero or a positive number.')
+        return bal

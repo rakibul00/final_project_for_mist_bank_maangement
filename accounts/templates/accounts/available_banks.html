@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Available Financials</h1>
+
+  {% if messages %}
+    <ul class="messages">
+      {% for message in messages %}
+        <li class="{{ message.tags }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <div class="bank-list">
+    {% for bank in banks %}
+      <div class="bank-card">
+        <h3>{{ bank.name }}</h3>
+        <form method="post" action="{% url 'add_external_bank' bank.id %}">
+          {% csrf_token %}
+          {% if request.user.external_accounts.filter(bank=bank).exists %}
+            <button type="button" disabled>Added</button>
+          {% else %}
+            <button type="submit">Add</button>
+          {% endif %}
+        </form>
+      </div>
+    {% empty %}
+      <p>No financials available.</p>
+    {% endfor %}
+  </div>
+{% endblock %}

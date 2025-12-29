@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block head_title %}Available Financials{% endblock %}
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-university me-2"></i>Available Financials
+                    </h4>
+                </div>
+                <div class="card-body">
+                        <p class="text-muted mb-4">
+                        These are the financials available in our system. You can link your external accounts from these financials.
+                        Financial management is handled by administrators only.
+                    </p>
+
+                    {% if banks %}
+                        <div class="row">
+                            {% for bank in banks %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="card h-100 {% if bank.is_active %}border-success{% else %}border-secondary{% endif %}">
+                                        <div class="card-body">
+                                            <h5 class="card-title">
+                                                <i class="fas fa-university me-2"></i>{{ bank.name }}
+                                                {% if bank.code %}
+                                                    <small class="text-muted">({{ bank.code }})</small>
+                                                {% endif %}
+                                            </h5>
+                                            <p class="card-text">
+                                                {% if bank.is_active %}
+                                                    <span class="badge bg-success">Active</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                {% endif %}
+                                            </p>
+                                            {% if bank.is_active %}
+                                                <a href="{% url 'add_external_account' %}?bank_id={{ bank.id }}" class="btn btn-outline-primary btn-sm">
+                                                    <i class="fas fa-plus me-1"></i>Add Account
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-university fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Financials Available</h5>
+                            <p class="text-muted">Please contact administrators to add financials to the system.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

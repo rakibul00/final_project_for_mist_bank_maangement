@@ -24,6 +24,7 @@ urlpatterns = [
     path('transactions/', include('transactions.urls')),
     path('notifications/', include('notifications.urls')),
     path('branch/', include('branch_management.urls')),
+    path('banks/', include('banks.urls')),
 ]
 
 # accounts/login

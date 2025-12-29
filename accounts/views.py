@@ -1,13 +1,15 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic import FormView
-from .forms import UserRegistrationForm,UserUpdateForm, AccountCloseForm, AccountClosureRequestForm
+from .forms import UserRegistrationForm,UserUpdateForm, AccountCloseForm, AccountClosureRequestForm, ExternalBankAccountForm, ExternalBankAccountCreateForm
 from django.contrib.auth import login, logout
 from django.urls import reverse_lazy
 from django.contrib.auth.views import LoginView, LogoutView
 from django.views import View
 from django.shortcuts import redirect
 from django.contrib import messages
-from .models import AccountClosure, AccountClosureRequest
+from .models import AccountClosure, AccountClosureRequest, ExternalBankAccount
+from django.contrib.auth.mixins import LoginRequiredMixin
+from banks.models import Bank
 from notifications.models import Notification
 
 class UserRegistrationView(FormView):
@@ -117,3 +119,123 @@ class RequestAccountClosureView(FormView):
             messages.warning(request, 'You already have a pending closure request.')
             return redirect('profile')
         return super().dispatch(request, *args, **kwargs)    
+
+
+class ExternalBankAccountListView(View):
+    template_name = 'accounts/external_accounts.html'
+
+    def get(self, request):
+        external_accounts = ExternalBankAccount.objects.filter(user=request.user)
+        total_external_balance = sum(account.current_balance for account in external_accounts)
+        main_balance = request.user.account.balance if hasattr(request.user, 'account') else 0
+        total_aggregated_balance = main_balance + total_external_balance
+        
+        context = {
+            'external_accounts': external_accounts,
+            'total_external_balance': total_external_balance,
+            'main_balance': main_balance,
+            'total_aggregated_balance': total_aggregated_balance,
+        }
+        return render(request, self.template_name, context)
+
+
+class ExternalBankAccountCreateView(LoginRequiredMixin, View):
+    template_name = 'accounts/add_external_account.html'
+
+    def get(self, request):
+        bank_id = request.GET.get('bank_id')
+        prefill = None
+        if bank_id:
+            prefill = Bank.objects.filter(pk=bank_id).first()
+        # Use create form that can accept prefill_bank kwarg
+        form = ExternalBankAccountCreateForm(prefill_bank=prefill)
+        return render(request, self.template_name, {'form': form, 'prefill_bank': prefill})
+
+    def post(self, request):
+        bank_id = request.POST.get('bank') or request.GET.get('bank_id')
+        prefill = None
+        if bank_id:
+            prefill = Bank.objects.filter(pk=bank_id).first()
+
+        form = ExternalBankAccountCreateForm(request.POST, prefill_bank=prefill)
+        if form.is_valid():
+            # Save atomically and update user's main balance
+            from django.db import transaction, IntegrityError
+            try:
+                with transaction.atomic():
+                    external_account = form.save(commit=False)
+                    external_account.user = request.user
+                    # Ensure bank field is set (either from disabled field or prefill)
+                    if prefill and not external_account.bank:
+                        external_account.bank = prefill
+                    external_account.account_number = f"ext-{external_account.bank.id}-{request.user.id}-{int(request.user.id)}"
+                    external_account.save()
+                    # Update user's main bank account balance if user has one
+                    try:
+                        user_account = request.user.account
+                        # add external balance to main balance
+                        user_account.balance = (user_account.balance or 0) + (external_account.current_balance or 0)
+                        user_account.save()
+                    except Exception:
+                        # if no main account, ignore balance addition
+                        pass
+            except IntegrityError:
+                messages.error(request, 'You already added this bank as an external account.')
+                return render(request, self.template_name, {'form': form, 'prefill_bank': prefill})
+
+            bank_display = external_account.bank.name if external_account.bank else 'Unknown Bank'
+            messages.success(request, f'External bank account {bank_display} added successfully!')
+            return redirect('external_accounts')
+
+        return render(request, self.template_name, {'form': form, 'prefill_bank': prefill})
+
+
+class AvailableBanksView(LoginRequiredMixin, View):
+    template_name = 'accounts/available_banks.html'
+
+    def get(self, request):
+        banks = Bank.objects.all()
+        return render(request, self.template_name, {'banks': banks})
+
+
+class AddExternalBankView(LoginRequiredMixin, View):
+    def post(self, request, bank_id):
+        bank = get_object_or_404(Bank, pk=bank_id)
+        # prevent duplicates
+        obj, created = ExternalBankAccount.objects.get_or_create(
+            user=request.user,
+            bank=bank,
+            defaults={'current_balance': 0, 'account_number': f'{bank.id}-{request.user.id}-{int(request.user.id)}'}
+        )
+        if created:
+            messages.success(request, f'{bank.name} added to your external accounts.')
+        else:
+            messages.info(request, f'{bank.name} is already in your external accounts.')
+        return redirect('external_accounts')
+
+
+class ExternalBankAccountUpdateView(View):
+    template_name = 'accounts/edit_external_account.html'
+
+    def get(self, request, pk):
+        account = ExternalBankAccount.objects.get(pk=pk, user=request.user)
+        form = ExternalBankAccountForm(instance=account)
+        return render(request, self.template_name, {'form': form, 'account': account})
+
+    def post(self, request, pk):
+        account = ExternalBankAccount.objects.get(pk=pk, user=request.user)
+        form = ExternalBankAccountForm(request.POST, instance=account)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'External bank account updated successfully!')
+            return redirect('external_accounts')
+        return render(request, self.template_name, {'form': form, 'account': account})
+
+
+class ExternalBankAccountDeleteView(View):
+    def post(self, request, pk):
+        account = ExternalBankAccount.objects.get(pk=pk, user=request.user)
+        bank_display = account.bank.name if account.bank else 'Unknown Bank'
+        account.delete()
+        messages.success(request, f'External bank account {bank_display} - {account.account_number} deleted successfully!')
+        return redirect('external_accounts')

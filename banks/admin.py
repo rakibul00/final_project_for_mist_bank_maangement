@@ -17,4 +17,7 @@ class TransactionInline(admin.TabularInline):
 @admin.register(Bank)
 class BankAdmin(admin.ModelAdmin):
     inlines = [UserBankAccountInline, TransactionInline]
-    list_display = ('name',)
+    list_display = ('name', 'code', 'is_active')
+    list_filter = ('is_active',)
+    search_fields = ('name', 'code')
+    ordering = ('name',)
