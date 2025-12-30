@@ -53,8 +53,11 @@
                             <table class="table table-striped">
                                 <thead>
                                     <tr>
-                                        <th>Financial Name</th>
+                                        <th>Account Holder</th>
                                         <th>Account Number</th>
+                                        <th>Bank Name</th>
+                                        <th>Branch</th>
+                                        <th>Date Added</th>
                                         <th>Current Balance</th>
                                         <th>Actions</th>
                                     </tr>
@@ -62,8 +65,11 @@
                                 <tbody>
                                     {% for account in external_accounts %}
                                         <tr>
-                                            <td>{{ account.bank.name }}{% if account.bank.code %} ({{ account.bank.code }}){% endif %}</td>
+                                            <td>{{ account.account_holder_name }}</td>
                                             <td>{{ account.account_number }}</td>
+                                            <td>{{ account.bank.name }}{% if account.bank.code %} ({{ account.bank.code }}){% endif %}</td>
+                                            <td>{{ account.branch_name }}</td>
+                                            <td>{{ account.date_added|date:"M d, Y" }}</td>
                                             <td class="text-success fw-bold">${{ account.current_balance|floatformat:2 }}</td>
                                             <td>
                                                 <a href="{% url 'edit_external_account' account.pk %}" class="btn btn-sm btn-outline-primary me-1">

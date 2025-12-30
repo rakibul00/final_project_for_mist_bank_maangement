@@ -12,14 +12,59 @@
                     </h4>
                 </div>
                 <div class="card-body">
-                        <div class="mb-3">
-                        <strong>Financial:</strong> {{ account.bank.name if account.bank else 'Unknown Financial' }}<br>
-                        <strong>Account Number:</strong> {{ account.account_number }}
-                    </div>
-                    
                     <form method="post">
                         {% csrf_token %}
-                        
+
+                        <div class="mb-3">
+                            <label for="{{ form.account_holder_name.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.account_holder_name.label }}
+                            </label>
+                            {{ form.account_holder_name }}
+                            {% if form.account_holder_name.errors %}
+                                <div class="text-danger small">{{ form.account_holder_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.account_number.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.account_number.label }}
+                            </label>
+                            {{ form.account_number }}
+                            {% if form.account_number.errors %}
+                                <div class="text-danger small">{{ form.account_number.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.bank.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.bank.label }}
+                            </label>
+                            {{ form.bank }}
+                            {% if form.bank.errors %}
+                                <div class="text-danger small">{{ form.bank.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.branch_name.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.branch_name.label }}
+                            </label>
+                            {{ form.branch_name }}
+                            {% if form.branch_name.errors %}
+                                <div class="text-danger small">{{ form.branch_name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.date_added.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.date_added.label }}
+                            </label>
+                            {{ form.date_added }}
+                            {% if form.date_added.errors %}
+                                <div class="text-danger small">{{ form.date_added.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
                         <div class="mb-3">
                             <label for="{{ form.current_balance.id_for_label }}" class="form-label fw-semibold">
                                 {{ form.current_balance.label }}
@@ -35,7 +80,7 @@
                                 <i class="fas fa-arrow-left me-2"></i>Cancel
                             </a>
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-2"></i>Update Balance
+                                <i class="fas fa-save me-2"></i>Update Account
                             </button>
                         </div>
                     </form>

@@ -159,7 +159,7 @@ class ExternalBankAccountCreateView(LoginRequiredMixin, View):
 
         form = ExternalBankAccountCreateForm(request.POST, prefill_bank=prefill)
         if form.is_valid():
-            # Save atomically and update user's main balance
+            # Save atomically without modifying main account balance
             from django.db import transaction, IntegrityError
             try:
                 with transaction.atomic():
@@ -168,23 +168,15 @@ class ExternalBankAccountCreateView(LoginRequiredMixin, View):
                     # Ensure bank field is set (either from disabled field or prefill)
                     if prefill and not external_account.bank:
                         external_account.bank = prefill
-                    external_account.account_number = f"ext-{external_account.bank.id}-{request.user.id}-{int(request.user.id)}"
+                    # Account number is now provided by user, no need to generate
                     external_account.save()
-                    # Update user's main bank account balance if user has one
-                    try:
-                        user_account = request.user.account
-                        # add external balance to main balance
-                        user_account.balance = (user_account.balance or 0) + (external_account.current_balance or 0)
-                        user_account.save()
-                    except Exception:
-                        # if no main account, ignore balance addition
-                        pass
+                    # DO NOT update user's main bank account balance - external accounts are separate
             except IntegrityError:
-                messages.error(request, 'You already added this bank as an external account.')
+                messages.error(request, 'An account with this account number already exists.')
                 return render(request, self.template_name, {'form': form, 'prefill_bank': prefill})
 
             bank_display = external_account.bank.name if external_account.bank else 'Unknown Bank'
-            messages.success(request, f'External bank account {bank_display} added successfully!')
+            messages.success(request, f'External bank account for {external_account.account_holder_name} added successfully!')
             return redirect('external_accounts')
 
         return render(request, self.template_name, {'form': form, 'prefill_bank': prefill})

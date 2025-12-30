@@ -29,17 +29,19 @@ class UserBankAccount(models.Model):
     @property
     def total_balance(self):
         """Calculate total balance including external bank accounts"""
+        from decimal import Decimal
         external_balance = self.user.external_accounts.aggregate(
             total=models.Sum('current_balance')
-        )['total'] or 0
+        )['total'] or Decimal('0')
         return self.balance + external_balance
     
     @property
     def external_accounts_balance(self):
         """Get total balance from external accounts only"""
+        from decimal import Decimal
         return self.user.external_accounts.aggregate(
             total=models.Sum('current_balance')
-        )['total'] or 0
+        )['total'] or Decimal('0')
     
     def __str__(self):
         return f"{self.bank.name} - {self.account_no}"
@@ -102,14 +104,17 @@ class ExternalBankAccount(models.Model):
     """Model for storing external bank accounts linked to users"""
 
     user = models.ForeignKey(User, related_name='external_accounts', on_delete=models.CASCADE)
-    bank = models.ForeignKey(Bank, on_delete=models.CASCADE,null=True,blank=True)
+    account_holder_name = models.CharField(max_length=100, default='')
     account_number = models.CharField(max_length=50, unique=True)
+    bank = models.ForeignKey(Bank, on_delete=models.CASCADE, null=True, blank=True)
+    branch_name = models.CharField(max_length=100, default='')
+    date_added = models.DateField(default='2025-01-01')
     current_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        ordering = ['-created_at']
+        ordering = ['-date_added']
         verbose_name = 'External Bank Account'
         verbose_name_plural = 'External Bank Accounts'
         constraints = [
@@ -118,5 +123,5 @@ class ExternalBankAccount(models.Model):
 
     def __str__(self):
         bank_name = self.bank.name if self.bank else 'Unknown Bank'
-        return f"{bank_name} - {self.account_number} ({self.user.username})"
+        return f"{bank_name} - {self.account_number} ({self.account_holder_name})"
     

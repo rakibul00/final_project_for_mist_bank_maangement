@@ -169,6 +169,14 @@ class AccountClosureRequestForm(forms.ModelForm):
 
 
 class ExternalBankAccountForm(forms.ModelForm):
+    account_holder_name = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter account holder name'
+        }),
+        label='Account Holder Name'
+    )
     account_number = forms.CharField(
         max_length=50,
         widget=forms.TextInput(attrs={
@@ -177,7 +185,21 @@ class ExternalBankAccountForm(forms.ModelForm):
         }),
         label='Account Number'
     )
-    
+    branch_name = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter branch name'
+        }),
+        label='Branch Name'
+    )
+    date_added = forms.DateField(
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        }),
+        label='Date Added'
+    )
     current_balance = forms.DecimalField(
         max_digits=12,
         decimal_places=2,
@@ -192,14 +214,57 @@ class ExternalBankAccountForm(forms.ModelForm):
 
     class Meta:
         model = ExternalBankAccount
-        fields = ['bank', 'account_number', 'current_balance']
+        fields = ['account_holder_name', 'account_number', 'bank', 'branch_name', 'date_added', 'current_balance']
         widgets = {
             'bank': forms.Select(attrs={'class': 'form-control'}),
         }
 
+    def clean_current_balance(self):
+        bal = self.cleaned_data.get('current_balance')
+        if bal is None:
+            return 0
+        if bal < 0:
+            raise forms.ValidationError('Balance must be zero or a positive number.')
+        return bal
+
 
 class ExternalBankAccountCreateForm(forms.ModelForm):
-    bank = forms.ModelChoiceField(queryset=Bank.objects.filter(is_active=True), widget=forms.Select(attrs={'class': 'form-control'}))
+    account_holder_name = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter account holder name'
+        }),
+        label='Account Holder Name'
+    )
+    account_number = forms.CharField(
+        max_length=50,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter account number'
+        }),
+        label='Account Number'
+    )
+    bank = forms.ModelChoiceField(
+        queryset=Bank.objects.filter(is_active=True),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label='Bank Name'
+    )
+    branch_name = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter branch name'
+        }),
+        label='Branch Name'
+    )
+    date_added = forms.DateField(
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        }),
+        label='Date Added'
+    )
     current_balance = forms.DecimalField(
         max_digits=12,
         decimal_places=2,
@@ -214,7 +279,7 @@ class ExternalBankAccountCreateForm(forms.ModelForm):
 
     class Meta:
         model = ExternalBankAccount
-        fields = ['bank', 'current_balance']
+        fields = ['account_holder_name', 'account_number', 'bank', 'branch_name', 'date_added', 'current_balance']
 
     def __init__(self, *args, **kwargs):
         # Accept `prefill_bank` kwarg (Bank instance or id) to disable bank selection

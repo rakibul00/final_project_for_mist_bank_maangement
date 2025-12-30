@@ -309,7 +309,10 @@ class TransactionReportView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update({
-            'account': self.request.user.account
+            'account': self.request.user.account,
+            'external_accounts': self.request.user.external_accounts.all(),
+            'total_balance': self.request.user.account.total_balance,
+            'external_total': self.request.user.account.external_accounts_balance,
         })
 
         return context

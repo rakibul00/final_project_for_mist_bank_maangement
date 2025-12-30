@@ -76,11 +76,28 @@
         </tr>
         {% endfor %}
         <tr class="bg-gray-800 text-white">
-          <th class="px-2 md:px-4 py-2 text-right text-xs md:text-sm" colspan="3">Current Balance</th>
+          <th class="px-2 md:px-4 py-2 text-right text-xs md:text-sm" colspan="3">Main Account Balance</th>
           <th class="px-2 md:px-4 py-2 text-left text-xs md:text-sm">
             $ {{ account.balance|floatformat:2|intcomma }}
           </th>
         </tr>
+        {% if external_accounts %}
+        <tr class="bg-blue-800 text-white">
+          <th class="px-2 md:px-4 py-2 text-right text-xs md:text-sm" colspan="3">External Accounts</th>
+          <th class="px-2 md:px-4 py-2 text-left text-xs md:text-sm">
+            {% for ext_account in external_accounts %}
+              <div class="text-xs">{{ ext_account.bank.name }}: $ {{ ext_account.current_balance|floatformat:2|intcomma }}</div>
+            {% endfor %}
+            <div class="font-bold border-t mt-1 pt-1">Total External: $ {{ external_total|floatformat:2|intcomma }}</div>
+          </th>
+        </tr>
+        <tr class="bg-green-800 text-white">
+          <th class="px-2 md:px-4 py-2 text-right text-xs md:text-sm" colspan="3">Combined Total Balance</th>
+          <th class="px-2 md:px-4 py-2 text-left text-xs md:text-sm">
+            $ {{ total_balance|floatformat:2|intcomma }}
+          </th>
+        </tr>
+        {% endif %}
       </tbody>
     </table>
   </div>
