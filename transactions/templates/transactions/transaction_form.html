@@ -17,6 +17,8 @@
 
                     <h1 class="card-title text-center mb-4 fs-3 fw-bold">{{ title }}</h1>
 
+                    {% include 'insufficient_balance_alert.html' %}
+
                     <form method="post">
                         {% csrf_token %}
 

@@ -1,18 +1,20 @@
 from django.db import models, transaction
 from django.utils import timezone
 from decimal import Decimal
-from accounts.models import UserBankAccount
+from accounts.models import UserBankAccount, ExternalBankAccount
 from banks.models import Bank
 
 
 class Transaction(models.Model):
     """Lightweight transaction record used across the project."""
     account = models.ForeignKey(UserBankAccount, related_name='transactions', on_delete=models.CASCADE)
+    external_account = models.ForeignKey(ExternalBankAccount, related_name='transactions', on_delete=models.CASCADE, null=True, blank=True)
     bank = models.ForeignKey(Bank, related_name='transactions', on_delete=models.CASCADE, null=True, blank=True)
     amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
-    transaction_type = models.IntegerField(choices=[(1, 'Deposite'), (2, 'Withdrawal'), (3, 'Loan'), (4, 'Loan Paid'), (5, 'Transfer')], null=True, blank=True)
+    transaction_type = models.IntegerField(choices=[(1, 'Deposite'), (2, 'Withdrawal'), (3, 'Loan'), (4, 'Loan Paid'), (5, 'Transfer'), (6, 'External Withdrawal'), (7, 'External Transfer')], null=True, blank=True)
     is_incoming = models.BooleanField(default=False)
     balance_after_transaction = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    external_balance_after_transaction = models.DecimalField(max_digits=12, decimal_places=2, default=0, null=True, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
     note = models.CharField(max_length=255, blank=True)
 
@@ -20,7 +22,8 @@ class Transaction(models.Model):
         ordering = ['-timestamp']
 
     def __str__(self):
-        return f"Transaction {self.id} - {self.account} - {self.amount}"
+        account_info = f"External: {self.external_account}" if self.external_account else f"Main: {self.account}"
+        return f"Transaction {self.id} - {account_info} - {self.amount}"
 
 
 class Loan(models.Model):

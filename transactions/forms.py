@@ -3,7 +3,7 @@ from django.core.exceptions import ValidationError
 from decimal import Decimal
 
 from .models import Transaction, Loan, LoanPayment
-from accounts.models import UserBankAccount
+from accounts.models import UserBankAccount, ExternalBankAccount
 
 
 class LoanApplyForm(forms.ModelForm):
@@ -60,14 +60,58 @@ class WithdrawForm(TransactionForm):
         account = self.account
         min_withdraw_amount = Decimal('500')
         max_withdraw_amount = Decimal('200000000')
-        balance = account.balance if account else Decimal('0')
         amount = self.cleaned_data.get('amount')
         if amount < min_withdraw_amount:
             raise forms.ValidationError(f'You can withdraw at least {min_withdraw_amount} $')
         if amount > max_withdraw_amount:
             raise forms.ValidationError(f'You can withdraw at most {max_withdraw_amount} $')
-        if amount > balance:
-            raise forms.ValidationError(f'You have {balance} $ in your account. You can not withdraw more than your account balance')
+        # Balance validation is now handled in the service layer
+        return amount
+
+
+class ExternalWithdrawForm(forms.ModelForm):
+    external_account = forms.ModelChoiceField(
+        queryset=ExternalBankAccount.objects.none(),
+        label='External Account',
+        empty_label='Select external account',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    amount = forms.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter withdrawal amount',
+            'min': '0',
+            'step': '0.01'
+        }),
+        label='Withdrawal Amount'
+    )
+    note = forms.CharField(
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Optional note'
+        }),
+        label='Note'
+    )
+
+    class Meta:
+        model = Transaction
+        fields = ['external_account', 'amount', 'note']
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if self.user:
+            self.fields['external_account'].queryset = ExternalBankAccount.objects.filter(user=self.user)
+
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        if amount <= 0:
+            raise forms.ValidationError("Withdrawal amount must be greater than zero")
+        # Balance validation is now handled in the service layer
         return amount
 
 
@@ -117,8 +161,67 @@ class TransferForm(TransactionForm):
         amount = self.cleaned_data.get('amount')
         if amount <= 0:
             raise ValidationError('Transfer amount must be greater than zero')
-        if account and amount > account.balance:
-            raise ValidationError(f'You have {account.balance} $ in your account. You cannot transfer more than your balance')
+        # Balance validation is now handled in the service layer
+        return amount
+
+
+class ExternalTransferForm(forms.ModelForm):
+    from_external_account = forms.ModelChoiceField(
+        queryset=ExternalBankAccount.objects.none(),
+        label='From External Account',
+        empty_label='Select external account',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    recipient = forms.ModelChoiceField(
+        queryset=UserBankAccount.objects.none(),
+        label='Recipient',
+        empty_label='Select recipient',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    amount = forms.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter transfer amount',
+            'min': '0',
+            'step': '0.01'
+        }),
+        label='Transfer Amount'
+    )
+    note = forms.CharField(
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Optional note'
+        }),
+        label='Note'
+    )
+
+    class Meta:
+        model = Transaction
+        fields = ['from_external_account', 'recipient', 'amount', 'note']
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if self.user:
+            self.fields['from_external_account'].queryset = ExternalBankAccount.objects.filter(user=self.user)
+            # Exclude user's own account from recipients
+            if hasattr(self.user, 'account'):
+                self.fields['recipient'].queryset = UserBankAccount.objects.exclude(id=self.user.account.id)
+
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        from_external_account = self.cleaned_data.get('from_external_account')
+
+        if amount <= 0:
+            raise forms.ValidationError('Transfer amount must be greater than zero')
+
+        if from_external_account and amount > from_external_account.current_balance:
+            raise forms.ValidationError(f'Insufficient balance. External account has {from_external_account.current_balance} $')
+
         return amount
 
 

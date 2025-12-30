@@ -1,0 +1,36 @@
+{% if insufficient_balance_error %}
+<div class="alert alert-danger alert-dismissible fade show d-flex align-items-start mt-3 mx-3 mx-md-0" role="alert">
+    <i class="fas fa-exclamation-triangle text-danger me-3 mt-1" style="font-size: 1.5rem;"></i>
+    <div class="flex-grow-1">
+        <h5 class="alert-heading mb-2">
+            <strong>Insufficient Balance</strong>
+        </h5>
+        <p class="mb-2">{{ insufficient_balance_error.message }}</p>
+
+        {% if insufficient_balance_error.details %}
+        <div class="bg-light p-3 rounded mb-2">
+            <small class="text-muted">
+                <strong>Transaction Details:</strong><br>
+                {% for key, value in insufficient_balance_error.details.items %}
+                <span class="d-block">{{ key|title }}: {{ value }}</span>
+                {% endfor %}
+            </small>
+        </div>
+        {% endif %}
+
+        {% if insufficient_balance_error.suggestions %}
+        <div class="mt-2">
+            <small class="text-muted">
+                <strong>Suggestions:</strong>
+                <ul class="mb-0 mt-1">
+                {% for suggestion in insufficient_balance_error.suggestions %}
+                    <li>{{ suggestion }}</li>
+                {% endfor %}
+                </ul>
+            </small>
+        </div>
+        {% endif %}
+    </div>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}

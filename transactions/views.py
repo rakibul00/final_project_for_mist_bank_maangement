@@ -4,10 +4,12 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.utils import timezone
 from django.db import transaction as db_transaction, models
+from django.core.exceptions import ValidationError
+from .services import BalanceService, InsufficientBalanceError
 from decimal import Decimal
 from django.contrib.admin.views.decorators import staff_member_required
 
-from .models import Loan, LoanPayment
+from .models import Loan, LoanPayment, Transaction
 from .forms import LoanApplyForm
 
 
@@ -228,29 +230,34 @@ class WithdrawMoneyView(TransactionCreateMixin):
     def form_valid(self, form):
         amount = form.cleaned_data.get('amount')
         account = self.request.user.account
-        
-        # Check if total aggregated balance is sufficient
-        total_balance = account.total_balance
-        if amount > total_balance:
-            messages.error(
-                self.request,
-                f'Insufficient funds. Your total aggregated balance is ${"{:,.2f}".format(float(total_balance))}'
+
+        try:
+            from .services import BalanceService
+            # Use service layer for balance validation and update
+            transaction_record = BalanceService.withdraw_from_main_account(
+                user_account=account,
+                amount=amount,
+                note=f'Withdrawal of ${amount}'
             )
+
+            messages.success(
+                self.request,
+                f'Successfully withdrawn ${amount} from your account. New balance: ${account.balance}'
+            )
+
+            return super().form_valid(form)
+
+        except InsufficientBalanceError as e:
+            # Pass error context to template for better UI display
+            context = {
+                'form': form,
+                'insufficient_balance_error': e.get_context(),
+                'title': self.title
+            }
+            return render(self.request, self.template_name, context)
+        except ValidationError as e:
+            messages.error(self.request, str(e))
             return self.form_invalid(form)
-        
-        # Withdraw from main account balance
-        account.balance -= amount
-        account.save(update_fields=['balance'])
-
-        # Set transaction type
-        form.instance.transaction_type = WITHDRAWAL
-
-        messages.success(
-            self.request,
-            f'Successfully withdrawn {"{:,.2f}".format(float(amount))}$ from your account. Total aggregated balance: ${"{:,.2f}".format(float(account.total_balance))}'
-        )
-
-        return super().form_valid(form)
 
 class LoanRequestView(LoginRequiredMixin, CreateView):
     model = Loan
@@ -287,8 +294,10 @@ class TransactionReportView(LoginRequiredMixin, ListView):
         return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
-        queryset = super().get_queryset().filter(
-            account=self.request.user.account
+        # Include both main account transactions and external account transactions
+        queryset = Transaction.objects.filter(
+            models.Q(account=self.request.user.account) |
+            models.Q(external_account__user=self.request.user)
         )
         start_date_str = self.request.GET.get('start_date')
         end_date_str = self.request.GET.get('end_date')
@@ -299,12 +308,14 @@ class TransactionReportView(LoginRequiredMixin, ListView):
             
             queryset = queryset.filter(timestamp__date__gte=start_date, timestamp__date__lte=end_date)
             self.balance = Transaction.objects.filter(
+                models.Q(account=self.request.user.account) |
+                models.Q(external_account__user=self.request.user),
                 timestamp__date__gte=start_date, timestamp__date__lte=end_date
             ).aggregate(Sum('amount'))['amount__sum']
         else:
             self.balance = self.request.user.account.balance
        
-        return queryset.distinct() # unique queryset hote hobe
+        return queryset.distinct().order_by('-timestamp') # unique queryset hote hobe
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -546,34 +557,152 @@ class TransferMoneyView(LoginRequiredMixin, View):
 
             sender = request.user.account
 
-            # atomic update to avoid partial transfers
-            with db_transaction.atomic():
-                sender.balance -= amount
-                sender.save(update_fields=['balance'])
-
-                recipient.balance += amount
-                recipient.save(update_fields=['balance'])
-
-                # create transaction records for both accounts
-                Transaction.objects.create(
-                    account=sender,
-                    bank=sender.bank if sender.bank else None,
+            try:
+                from .services import BalanceService
+                # Use service layer for transfer validation and update
+                sender_transaction, recipient_transaction = BalanceService.transfer_from_main_account(
+                    sender_account=sender,
+                    recipient_account=recipient,
                     amount=amount,
-                    balance_after_transaction=sender.balance,
-                    transaction_type=TRANSFER,
-                    is_incoming=False
+                    note=f'Transfer to {recipient.user.username}'
                 )
 
-                Transaction.objects.create(
-                    account=recipient,
-                    bank=recipient.bank if recipient.bank else None,
-                    amount=amount,
-                    balance_after_transaction=recipient.balance,
-                    transaction_type=TRANSFER,
-                    is_incoming=True
-                )
+                messages.success(request, f'Successfully transferred ${amount} to account {recipient.account_no}')
+                return redirect('transactions:transaction_report')
 
-            messages.success(request, f'Successfully transferred {amount}$ to account {recipient.account_no}')
-            return redirect('transactions:transaction_report')
+            except InsufficientBalanceError as e:
+                # Pass error context to template for better UI display
+                context = {
+                    'form': form,
+                    'insufficient_balance_error': e.get_context(),
+                    'title': 'Transfer Money'
+                }
+                return render(request, 'transactions/transfer.html', context)
+            except ValidationError as e:
+                messages.error(request, str(e))
+                return render(request, 'transactions/transfer.html', {'form': form, 'title': 'Transfer Money'})
 
         return render(request, 'transactions/transfer.html', {'form': form, 'title': 'Transfer Money'})
+
+
+class ExternalWithdrawView(LoginRequiredMixin, View):
+    """View for withdrawing money from external accounts"""
+
+    def dispatch(self, request, *args, **kwargs):
+        # Check if user has an active account
+        if hasattr(request.user, 'account') and not request.user.account.is_active:
+            messages.error(request, 'Your account is closed. You cannot perform external withdrawals.')
+            return redirect('profile')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request):
+        from .forms import ExternalWithdrawForm
+        form = ExternalWithdrawForm(user=request.user)
+        return render(request, 'transactions/external_withdraw.html', {'form': form, 'title': 'Withdraw from External Account'})
+
+    def post(self, request):
+        from .forms import ExternalWithdrawForm
+        form = ExternalWithdrawForm(request.POST, user=request.user)
+        if form.is_valid():
+            external_account = form.cleaned_data.get('external_account')
+            amount = form.cleaned_data.get('amount')
+            note = form.cleaned_data.get('note', '')
+
+            try:
+                from .services import BalanceService
+                # Use service layer for balance validation and update
+                transaction_record = BalanceService.withdraw_from_external_account(
+                    user=request.user,
+                    external_account=external_account,
+                    amount=amount,
+                    note=note or f'Withdrawal from external account {external_account.account_number}'
+                )
+
+                # Send notification
+                from notifications.models import Notification
+                Notification.objects.create(
+                    user=request.user,
+                    message=f'Successfully withdrawn ${amount} from external account {external_account.account_number}. New balance: ${external_account.current_balance}'
+                )
+
+                messages.success(request, f'Successfully withdrawn ${amount} from external account {external_account.account_number}')
+                return redirect('transactions:transaction_report')
+
+            except InsufficientBalanceError as e:
+                # Pass error context to template for better UI display
+                context = {
+                    'form': form,
+                    'insufficient_balance_error': e.get_context(),
+                    'title': 'Withdraw from External Account'
+                }
+                return render(request, 'transactions/external_withdraw.html', context)
+            except ValidationError as e:
+                messages.error(request, str(e))
+                return render(request, 'transactions/external_withdraw.html', {'form': form, 'title': 'Withdraw from External Account'})
+
+        return render(request, 'transactions/external_withdraw.html', {'form': form, 'title': 'Withdraw from External Account'})
+
+
+class ExternalTransferView(LoginRequiredMixin, View):
+    """View for transferring money from external accounts to other users"""
+
+    def dispatch(self, request, *args, **kwargs):
+        # Check if user has an active account
+        if hasattr(request.user, 'account') and not request.user.account.is_active:
+            messages.error(request, 'Your account is closed. You cannot perform external transfers.')
+            return redirect('profile')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request):
+        from .forms import ExternalTransferForm
+        form = ExternalTransferForm(user=request.user)
+        return render(request, 'transactions/external_transfer.html', {'form': form, 'title': 'Transfer from External Account'})
+
+    def post(self, request):
+        from .forms import ExternalTransferForm
+        form = ExternalTransferForm(request.POST, user=request.user)
+        if form.is_valid():
+            from_external_account = form.cleaned_data.get('from_external_account')
+            recipient = form.cleaned_data.get('recipient')
+            amount = form.cleaned_data.get('amount')
+            note = form.cleaned_data.get('note', '')
+
+            try:
+                from .services import BalanceService
+                # Use service layer for transfer validation and update
+                sender_transaction, recipient_transaction = BalanceService.transfer_from_external_account(
+                    user=request.user,
+                    external_account=from_external_account,
+                    recipient_account=recipient,
+                    amount=amount,
+                    note=note or f'Transfer from external account to {recipient.user.username}'
+                )
+
+                # Send notifications
+                from notifications.models import Notification
+                Notification.objects.create(
+                    user=request.user,
+                    message=f'Successfully transferred ${amount} from external account {from_external_account.account_number} to {recipient.user.username}'
+                )
+
+                Notification.objects.create(
+                    user=recipient.user,
+                    message=f'Received ${amount} transfer from {request.user.username} (external account)'
+                )
+
+                messages.success(request, f'Successfully transferred ${amount} from external account to {recipient.user.username}')
+                return redirect('transactions:transaction_report')
+
+            except InsufficientBalanceError as e:
+                # Pass error context to template for better UI display
+                context = {
+                    'form': form,
+                    'insufficient_balance_error': e.get_context(),
+                    'title': 'Transfer from External Account'
+                }
+                return render(request, 'transactions/external_transfer.html', context)
+            except ValidationError as e:
+                messages.error(request, str(e))
+                return render(request, 'transactions/external_transfer.html', {'form': form, 'title': 'Transfer from External Account'})
+
+        return render(request, 'transactions/external_transfer.html', {'form': form, 'title': 'Transfer from External Account'})

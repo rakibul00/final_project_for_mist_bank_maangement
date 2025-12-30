@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.db.models import Sum
+from django.core.exceptions import ValidationError
 from .constants import ACCOUNT_TYPE, GENDER_TYPE
 from banks.models import Bank
 from branch_management.models import Branch
@@ -24,6 +25,15 @@ class UserBankAccount(models.Model):
     gender = models.CharField(max_length=10, choices=GENDER_TYPE)
     initial_deposite_date = models.DateField(auto_now_add=True)
     balance = models.DecimalField(default=0, max_digits=12, decimal_places=2) # ekjon user 12 digit obdi taka rakhte parbe, dui doshomik ghor obdi rakhte parben 1000.50
+    
+    def clean(self):
+        """Model-level validation to prevent negative balance"""
+        if self.balance < 0:
+            raise ValidationError({'balance': 'Account balance cannot be negative'})
+    
+    def save(self, *args, **kwargs):
+        self.clean()  # Validate before saving
+        super().save(*args, **kwargs)
     is_active = models.BooleanField(default=True)
     
     @property
@@ -112,6 +122,15 @@ class ExternalBankAccount(models.Model):
     current_balance = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def clean(self):
+        """Model-level validation to prevent negative balance"""
+        if self.current_balance < 0:
+            raise ValidationError({'current_balance': 'External account balance cannot be negative'})
+    
+    def save(self, *args, **kwargs):
+        self.clean()  # Validate before saving
+        super().save(*args, **kwargs)
 
     class Meta:
         ordering = ['-date_added']

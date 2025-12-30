@@ -15,22 +15,22 @@
                         {% csrf_token %}
 
                         <div class="mb-3">
-                            <label class="form-label fw-bold" for="id_recipient">
-                                Recipient Account
+                            <label class="form-label fw-bold" for="id_external_account">
+                                External Account
                             </label>
-                            {{ form.recipient }}
-                            {% if form.recipient.errors %}
-                                {% for error in form.recipient.errors %}
+                            {{ form.external_account }}
+                            {% if form.external_account.errors %}
+                                {% for error in form.external_account.errors %}
                                     <div class="text-danger small">{{ error }}</div>
                                 {% endfor %}
                             {% endif %}
                         </div>
 
-                        <div class="mb-4">
-                            <label class="form-label fw-bold" for="amount">
-                                Transfer Amount ($)
+                        <div class="mb-3">
+                            <label class="form-label fw-bold" for="id_amount">
+                                Withdrawal Amount ($)
                             </label>
-                            <input class="form-control form-control-lg" name="amount" id="amount" type="number" step="0.01" min="0.01" required placeholder="Enter amount to transfer">
+                            {{ form.amount }}
                             {% if form.amount.errors %}
                                 {% for error in form.amount.errors %}
                                     <div class="text-danger small">{{ error }}</div>
@@ -38,9 +38,21 @@
                             {% endif %}
                         </div>
 
+                        <div class="mb-4">
+                            <label class="form-label fw-bold" for="id_note">
+                                Note (Optional)
+                            </label>
+                            {{ form.note }}
+                            {% if form.note.errors %}
+                                {% for error in form.note.errors %}
+                                    <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+
                         <div class="d-grid">
-                            <button class="btn btn-primary btn-lg" type="submit">
-                                <i class="fas fa-paper-plane me-2"></i>Transfer Money
+                            <button class="btn btn-warning btn-lg" type="submit">
+                                <i class="fas fa-money-bill-wave me-2"></i>Withdraw from External Account
                             </button>
                         </div>
                     </form>

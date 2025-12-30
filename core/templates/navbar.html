@@ -14,11 +14,23 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'transactions:deposit_money' %}">Deposit</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'transactions:withdraw_money' %}">Withdraw</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="withdrawDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Withdraw
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="withdrawDropdown">
+                            <li><a class="dropdown-item" href="{% url 'transactions:withdraw_money' %}">From Main Account</a></li>
+                            <li><a class="dropdown-item" href="{% url 'transactions:external_withdraw' %}">From External Account</a></li>
+                        </ul>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'transactions:transfer_money' %}">Transfer</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="transferDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Transfer
+                        </a>
+                        <ul class="dropdown-menu" aria-labelledby="transferDropdown">
+                            <li><a class="dropdown-item" href="{% url 'transactions:transfer_money' %}">From Main Account</a></li>
+                            <li><a class="dropdown-item" href="{% url 'transactions:external_transfer' %}">From External Account</a></li>
+                        </ul>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'external_accounts' %}">External Accounts</a>
